@@ -1,0 +1,52 @@
+version: "3.7"
+services:
+  service:
+    build:
+      context: .
+      dockerfile: Dockerfile-service
+    container_name: url-service
+    image: gcr.io/ornate-magnet-348420/url-service
+    working_dir: /var/www/html
+    volumes:
+      - ./service:/var/www/html
+    ports:
+      - "8000:80"
+    networks:
+      - url-network
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile-db
+    container_name: url-db
+    image: gcr.io/ornate-magnet-348420/url-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - url-network
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile-client
+    container_name: url-client
+    image: gcr.io/ornate-magnet-348420/url-client
+    working_dir: /var/www/html
+    volumes:
+      - ./client:/var/www/html
+    ports:
+      - "80:8080"
+    restart: always
+    depends_on:
+      - service
+    networks:
+      - url-network
+networks:
+  url-network:
+    driver: bridge

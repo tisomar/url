@@ -1,0 +1,91 @@
+#FROM php:7.4-fpm
+#
+### Arguments defined in docker-compose.yml
+#ARG user
+#ARG uid
+#
+## Install system dependencies
+#RUN apt-get update && apt-get install -y \
+#    git \
+#    curl \
+#    libpng-dev \
+#    libonig-dev \
+#    libxml2-dev \
+#    zip \
+#    unzip \
+#    npm \
+#    cron
+#
+#RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+#
+#RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+#
+#COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+#
+#COPY build/crontab /etc/cron.d/cron
+#
+#COPY build/build.sh /usr/local/bin/build.sh
+#
+#RUN crontab /etc/cron.d/cron
+#
+#RUN chmod 777 -R /etc/cron.d/cron
+#
+#RUN chmod 777 -R /usr/local/bin/build.sh
+#
+#RUN touch /var/log/cron.log
+#
+#WORKDIR /var/www
+#
+#USER $user
+#
+#CMD [ "sh", "-c", "/usr/local/bin/build.sh"]
+
+
+FROM php:7.3-apache
+
+WORKDIR /var/www/html
+
+RUN apt update \
+    && apt install -y \
+    libicu-dev \
+    cron \
+    zip \
+    unzip \
+    curl \
+    git \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    && a2enmod rewrite \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && docker-php-ext-install pdo pdo_mysql
+
+RUN ln -sf /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime
+
+RUN rm -rf /var/cache/apk/*
+
+RUN mkdir -p /var/log/cron
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+COPY build/000-default-servico.conf /etc/apache2/sites-available/000-default.conf
+
+COPY build/build.sh /usr/local/bin/build.sh
+
+COPY build/crontab /etc/cron.d/cron
+
+RUN chmod 777 -R /etc/cron.d/cron
+
+RUN crontab /etc/cron.d/cron
+
+RUN chmod 777 -R /usr/local/bin/build.sh
+
+RUN touch /var/log/cron.log
+
+RUN chmod 777 -R /var/www/html/
+RUN chmod 777 -R /usr/local/bin/build.sh
+
+EXPOSE 80
+
+CMD [ "sh", "-c", "/usr/local/bin/build.sh; /usr/local/bin/apache2-foreground; cron -f" ]

@@ -1,0 +1,1 @@
+* * * * * cd /var/www/html && /usr/local/bin/php artisan url:cron >> /var/www/html/storage/logs/laravel.txt
